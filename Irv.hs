@@ -1,24 +1,46 @@
-module Irv where
-
-
 import Data.List (sort)
-import Safe (headMay)
 
 
 type Option = String
 type Vote = [Option]
 
 
-findWinner :: [Vote] -> Option
+votes :: [Vote]
+votes = [["a", "b", "c"]]
+
+
+main = do
+  winner <- findWinner votes
+  putStrLn winner
+
+
+headMay :: [a] -> Maybe a
+headMay [] = Nothing
+headMay as = Just (head as)
+
+
+findWinner :: [Vote] -> IO Option
 findWinner votes = findWinner' votes []
 
 
-findWinner' :: [Vote] -> [Option] -> Option
-findWinner' votes eliminated =
-  let roundResult = countVotes votes eliminated
-  in if hasWinner roundResult
-        then snd $ head roundResult
-        else findWinner' votes ((snd $ last roundResult):eliminated)
+findWinner' :: [Vote] -> [Option] -> IO Option
+findWinner' votes eliminated = do
+  roundResult <- countVotes votes eliminated
+  if hasWinner roundResult
+     then return (snd $ head roundResult)
+     else findWinner' votes (eliminated ++ eliminate roundResult)
+
+
+eliminate :: [(Int, String)] -> [String]
+eliminate roundResult = eliminate' (reverse roundResult) [] (-1)
+
+
+eliminate' :: [(Int, String)] -> [String] -> Int -> [String]
+eliminate' [] e _ = e
+eliminate' (o:os) e i
+    | (fst o) < i               = error "Out of order votes" 
+    | i == (-1) || (fst o) == i = eliminate' os (snd o:e) (fst o) 
+    | otherwise                 = e
 
 
 hasWinner :: [(Int, Option)] -> Bool
@@ -30,11 +52,13 @@ hasWinner roundResult = 2 * most > total
 
 -- Count votes based on the highest-ranked not-yet-eliminated option.
 -- Return in ordered list.
-countVotes :: [Vote] -> [Option] -> [(Int, String)]
-countVotes votes eliminated =
+countVotes :: [Vote] -> [Option] -> IO [(Int, String)]
+countVotes votes eliminated = do
   let firstValid v = headMay $ filter (not . (`elem` eliminated)) v
       validVotes = map firstValid votes
-  in reverse . sort $ foldl countOption [] validVotes
+      result = reverse . sort $ foldl countOption [] validVotes
+  putStrLn (show result)
+  return result
 
 
 countOption :: [(Int, Option)] -> Maybe Option -> [(Int, Option)]
