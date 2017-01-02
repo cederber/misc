@@ -8,7 +8,10 @@ import Data.List (intercalate, sortBy)
 import qualified Data.Text as T (Text, unpack)
 import qualified Data.Vector as V
 import Safe (headMay)
-import System.IO (hSetBinaryMode, stdin)
+import System.Environment (getArgs)
+import System.Exit (ExitCode(ExitFailure, ExitSuccess), exitWith)
+import System.IO
+    (Handle, IOMode(ReadMode), hSetBinaryMode, openFile, stdin, withFile)
 
 
 type Option = String
@@ -18,12 +21,26 @@ type Vote = [Option]
 
 main :: IO ()
 main = do
-  hSetBinaryMode stdin True
-  bytes <- C.hGetContents stdin
-  let (winner, output) = findWinner $ getVotes bytes
-  putStrLn $ unlines output
-  putStrLn $ show winner ++ " wins!"
+  args <- getArgs
+  if length args > 1 then showUsageAndExit (ExitFailure 1)
+  else
+    if headMay args == Just "-h" then showUsageAndExit ExitSuccess
+    else do
+      handle <- if length args == 1
+                then openFile (head args) ReadMode
+                else return stdin
+      hSetBinaryMode handle True
+      bytes <- C.hGetContents handle
+      let (winner, output) = findWinner $ getVotes bytes
+      putStrLn $ unlines output
+      putStrLn $ show winner ++ " wins!"
 
+
+showUsageAndExit :: ExitCode -> IO ()
+showUsageAndExit code = do
+  putStrLn "Usage: irv <votes_csv>"
+  putStrLn "       cat <votes_csv> | irv"
+  exitWith code
 
 getVotes :: C.ByteString -> [Vote]
 getVotes bytes =
