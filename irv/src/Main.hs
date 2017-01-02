@@ -59,14 +59,14 @@ countVotes :: [Vote] -> [Option] -> [(Int, Option)]
 countVotes votes eliminated =
   let firstValid v = headMay $ filter (not . (`elem` eliminated)) v
       validVotes = map firstValid votes
-  in  sortBy (flip compare) $ foldl countOption [] validVotes
+  in  sortBy (flip compare) $ foldl countFirstChoiceVote [] validVotes
 
 
-eliminate :: [(Int, String)] -> [String]
+eliminate :: [(Int, Option)] -> [Option]
 eliminate roundResult = eliminate' (reverse roundResult) [] (-1)
 
 
-eliminate' :: [(Int, String)] -> [String] -> Int -> [String]
+eliminate' :: [(Int, Option)] -> [Option] -> Int -> [Option]
 eliminate' [] e _ = e
 eliminate' (o:os) e i
     | fst o < i               = error "Out of order votes"
@@ -78,12 +78,12 @@ hasWinner :: [(Int, Option)] -> Bool
 hasWinner [] = False
 hasWinner roundResult = 2 * most > total
     where most = fst $ head roundResult
-          total = sum (map fst roundResult)
+          total = sum $ map fst roundResult
 
 
-countOption :: [(Int, Option)] -> Maybe Option -> [(Int, Option)]
-countOption counts Nothing = counts
-countOption [] (Just o) = [(1, o)]
-countOption ((n,o1):os) (Just o)
+countFirstChoiceVote :: [(Int, Option)] -> Maybe Option -> [(Int, Option)]
+countFirstChoiceVote counts Nothing = counts
+countFirstChoiceVote [] (Just o) = [(1, o)]
+countFirstChoiceVote ((n,o1):os) (Just o)
     | o1 == o   = (n+1, o):os
-    | otherwise = (n, o1):countOption os (Just o)
+    | otherwise = (n, o1):countFirstChoiceVote os (Just o)
