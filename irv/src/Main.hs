@@ -1,12 +1,14 @@
 module Main where
 
 import Control.Monad.Trans.Writer.Lazy (Writer, runWriter, tell, writer)
-import qualified Data.ByteString.Lazy.Char8 as C (pack)
+import qualified Data.ByteString.Lazy.Char8 as C
+    (ByteString, hGetContents, pack)
 import Data.Csv (HasHeader(NoHeader), decode)
 import Data.List (intercalate, sortBy)
-import Data.Text (Text, unpack)
+import qualified Data.Text as T (Text, unpack)
 import qualified Data.Vector as V
 import Safe (headMay)
+import System.IO (hSetBinaryMode, stdin)
 
 
 type Option = String
@@ -16,30 +18,19 @@ type Vote = [Option]
 
 main :: IO ()
 main = do
-  let (winner, output) = findWinner votes
+  hSetBinaryMode stdin True
+  bytes <- C.hGetContents stdin
+  let (winner, output) = findWinner $ getVotes bytes
   putStrLn $ unlines output
-  putStrLn ""
   putStrLn $ show winner ++ " wins!"
 
 
-votes :: [Vote]
-votes =
-  let dec = decode NoHeader
-        $ C.pack
-          ("a,b,c\n"
-          ++ "a,b,c\n"
-          ++ "b,a,c\n"
-          ++ "b,a,c\n"
-          ++ "c,a,b\n") :: Either String (V.Vector [Text])
+getVotes :: C.ByteString -> [Vote]
+getVotes bytes =
+  let dec = decode NoHeader bytes :: Either String (V.Vector [T.Text])
       unpackVotes (Left e) = error e
-      unpackVotes (Right v) = map (map unpack) (V.toList v)
+      unpackVotes (Right v) = map (map T.unpack) (V.toList v)
    in unpackVotes dec
-
-
-vectorToList :: V.Vector a -> [a]
-vectorToList v
-    | null v = []
-    | otherwise = V.head v : vectorToList (V.tail v)
 
 
 findWinner :: [Vote] -> (Option, [String])
@@ -50,7 +41,7 @@ findWinner' :: [Vote] -> Round -> [Option] -> () -> Writer [String] Option
 findWinner' votes rnd eliminated _ =
   let roundResult = countVotes votes eliminated
       voteLog =
-          [[] | rnd > 0]
+          [[] | rnd > 1]
           ++ ["Round #" ++ show rnd]
           ++ showResult roundResult
   in if hasWinner roundResult
