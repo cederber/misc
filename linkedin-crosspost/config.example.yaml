@@ -1,0 +1,31 @@
+# LinkedIn Cross-post Configuration
+# Copy this file to config.yaml and fill in your values
+
+ghost:
+  # Your Ghost site URL (e.g., https://ink08.net or https://yoursite.ghost.io)
+  api_url: "https://your-site.ghost.io"
+
+  # Content API Key from Ghost Admin → Settings → Integrations → Add custom integration
+  api_key: "your-content-api-key-here"
+
+teaser:
+  # Strategy for extracting teaser content
+  # Options: first_paragraphs, custom_marker, excerpt
+  strategy: "first_paragraphs"
+
+  # Maximum characters for teaser (before adding title and CTA)
+  max_chars: 2800
+
+  # HTML comment marker for custom_marker strategy
+  marker: "<!--teaser-->"
+
+linkedin:
+  # Include post title at the top of the LinkedIn post
+  include_title: true
+
+  # Call-to-action template (use {url} and {title} as placeholders)
+  cta_template: "\n\n→ Read more: {url}"
+
+zapier:
+  # Webhook URL from Zapier (Webhooks by Zapier → Catch Hook)
+  webhook_url: "https://hooks.zapier.com/hooks/catch/YOUR_ID/YOUR_HOOK/"
